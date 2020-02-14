@@ -1,0 +1,495 @@
+<!--
+The MIT License
+
+Copyright (c) 2004-2010, Sun Microsystems, Inc., Kohsuke Kawaguchi, Andrew Bayer
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+-->
+<?jelly escape-by-default='true'?>
+
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+
+
+<script type="text/javascript">
+
+function loadNewAppSection() {
+	var modal = document.getElementById('newAppSection');
+	document.getElementById('addAppButton').style.display = "none";
+	modal.style.display = "block";
+} 
+
+function closeNewAppSection() {
+    var modal = document.getElementById('newAppSection');
+    document.getElementById('addAppButton').style.display = "block";
+	modal.style.display = "none";
+	var field = document.getElementById('url');
+	var evt = document.createEvent("HTMLEvents");
+	evt.initEvent("change", false, true);
+	field.dispatchEvent(evt);
+}
+
+function loadNewCodebaseSection() {
+	var modal = document.getElementById('newCodebaseSection');
+	document.getElementById('addCodebaseButton').style.display  = "none";
+	modal.style.display = "block";
+}
+
+function closeNewCodebaseSection() {
+    var modal = document.getElementById('newCodebaseSection');
+	modal.style.display = "none";
+	document.getElementById('addCodebaseButton').style.display  = "block";
+	var field = document.getElementById('url');
+	var evt = document.createEvent("HTMLEvents");
+	evt.initEvent("change", false, true);
+	field.dispatchEvent(evt);
+}
+function validateTextboxValue(e){
+	 var x = e.value.trim();
+	 document.getElementById('errorMessage').innerHTML= '    ';
+     if(!x){
+     	e.value='';
+     	return;
+     }
+     if (isNaN(x)){
+            e.value='';
+            e.focus();
+            document.getElementById('errorMessage').innerHTML = 'Please enter positive integer value for vulnerability';
+            return;
+     } else {
+         	if ( 0 > x){
+                e.value='';
+                e.focus();
+              document.getElementById('errorMessage').innerHTML = 'Please enter positive integer value for vulnerability.';
+              return;
+            }
+            if ( x >= 10000){
+                e.value='';
+                e.focus();
+              document.getElementById('errorMessage').innerHTML = 'Please enter vulnerability value in range 0-9999.';
+              return;
+            }
+          }
+       document.getElementById('errorMessage').innerHTML ='';
+    }  
+    
+    
+    
+    function validateScanTimeout(e){
+	 var x = e.value.trim();
+	 document.getElementById('errorMessage').innerHTML= '    ';
+     if(!x){
+     	e.value='';
+     	return;
+     }
+     if (isNaN(x)){
+            e.value='';
+            e.focus();
+            document.getElementById('errorMessage').innerHTML = 'Please enter positive integer value for scan timeout.';
+            return;
+     } else {
+         	if ( 0 > x){
+                e.value='';
+                e.focus();
+              document.getElementById('errorMessage').innerHTML = 'Please enter positive integer value for scan timeout.';
+              return;
+            }
+            if ( x >= 10000){
+                e.value='';
+                e.focus();
+              document.getElementById('errorMessage').innerHTML = 'Please enter scan timeout in range 0-9999.';
+              return;
+            }
+          }
+       document.getElementById('errorMessage').innerHTML ='';
+    }    
+
+</script>
+
+
+<f:optionalBlock title="Override global credentials" name ="uselocalCredentials"
+		inline="true" field="uselocalCredentials" 
+		checked="${instance==null?false:instance.uselocalCredentials}"
+		help="/plugin/WhiteHat_Sentinel_Jenkins_Plugin/overrideGlobal.html">
+
+	<f:entry title="Sentinel server" field="sentinelURL" help="/plugin/WhiteHat_Sentinel_Jenkins_Plugin/sentinelURL.html">
+		<f:textbox default="https://sentinel.whitehatsec.com" id="url"/>
+    </f:entry>
+    
+    <f:entry title="API key" help="/plugin/WhiteHat_Sentinel_Jenkins_Plugin/apiKey.html">
+		<f:password  field="apiKey"/>
+    </f:entry>
+    
+    <f:validateButton
+     title="${%Test Connection}" progress="${%Testing...}"
+     method="validateConnection" with="apiKey,sentinelURL" />
+     
+</f:optionalBlock>
+
+
+
+<f:section title="WhiteHat Assets Selection"> 
+
+	<f:block>
+		<table width = "75%">
+
+			<f:entry title="Select Sentinel Dynamic asset (site) &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; &#160;&#160;" field="site" help="/plugin/WhiteHat_Sentinel_Jenkins_Plugin/site.html">
+				<f:select/>
+			</f:entry>
+
+		</table>
+	</f:block>
+
+
+	
+	<f:block>
+		<table width = "75%">
+
+			<f:entry title="Select Sentinel Source asset (application) &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;" field="app" help="/plugin/WhiteHat_Sentinel_Jenkins_Plugin/app.html">
+				<f:select/>
+			</f:entry>
+			
+			<f:entry help="/plugin/WhiteHat_Sentinel_Jenkins_Plugin/newApp.html">
+				<input class="yui-button" value="Add New" id="addAppButton" onclick = "loadNewAppSection()" />
+			</f:entry>
+
+		</table>
+	</f:block>
+
+	
+	<f:block>
+	<table id="newAppSection" style="width:75%;display:none">
+		<f:entry title="Application name" field="newAppName">
+			<f:textbox />
+		</f:entry>
+		<f:entry name="language" title="Choose language" field="language">
+			   			    <select name="language">
+			        			<option value="Discover">Discover my language</option>
+			        			<option value="Java">Java</option>
+			        			<option value="C#">C#</option>
+			        			<option value="Objective-C">Objective C</option>
+			        			<option value="PHP">PHP</option>
+			        			<option value="JavaScript">JavaScript</option>
+			        			<option value="TypeScript">TypeScript</option>
+			        			<option value="Python">Python</option>
+			    			</select>
+		</f:entry>
+		<f:entry title="Select WhiteHat appliance" field="appliance">
+				<f:select/>
+		</f:entry>
+		<tr>
+			<td align="right">
+				<f:validateButton
+					title="${%Add}" progress="${%Adding...}"
+	    			method="addApplication" with="apiKey,sentinelURL,uselocalCredentials,newAppName,language,appliance" />
+			</td>	
+			<td>
+				<f:entry>
+					<input class="yui-button" value="Done" onclick = "closeNewAppSection()" />
+				</f:entry>
+			</td>
+		</tr>
+	</table>
+	</f:block>
+	
+	
+	
+	<f:block>
+		<table width = "75%">
+			<f:entry title="Select codebase for the Sentinel Source asset &#160;" field="codebase" help="/plugin/WhiteHat_Sentinel_Jenkins_Plugin/codebase.html">
+				<f:select/>
+			</f:entry>
+			
+			<f:entry help="/plugin/WhiteHat_Sentinel_Jenkins_Plugin/newCodebase.html">
+				<input class="yui-button" value="Add New" id="addCodebaseButton" onclick = "loadNewCodebaseSection()" />
+			</f:entry>
+		</table>
+	</f:block>
+	
+	
+	<f:block>
+	<table id="newCodebaseSection" style="width:75%;display:none">
+		<f:entry title="Codebase name" field="newCodebaseName">
+			<f:textbox />
+		</f:entry>
+		<tr>
+				<f:validateButton
+					title="${%Add}" progress="${%Adding...}"
+	    			method="addCodebase" with="apiKey,sentinelURL,uselocalCredentials,newCodebaseName,app" />	
+				<f:entry>
+					<input class="yui-button" value="Done" onclick = "closeNewCodebaseSection()" />
+				</f:entry>
+		</tr>
+	</table>
+	</f:block>
+</f:section>
+
+
+
+
+<f:optionalBlock name="archiveSelected" field="archiveSelected"
+		title="Use Jenkins build" inline="true"
+		checked="${instance.archiveSelected}"
+		help="/plugin/WhiteHat_Sentinel_Jenkins_Plugin/archiveSelected.html">
+
+
+	<f:section title="Select Build Type ">
+	<f:block>
+		<table>
+			<f:radioBlock name="fileTypeSelected" value = "ARCHIVE" checked="${instance.isFileTypeSelected('ARCHIVE')}" title="Archive" inline="true" help="/plugin/WhiteHat_Sentinel_Jenkins_Plugin/fileArchive.html">
+				<f:nested>
+					<f:entry title="Archive name" field="archiveName">
+						<f:textbox />
+					</f:entry>
+					<f:entry title="Exclude file type" field="excludeFileType">
+						<f:textbox default="**/*.jpg,**/*.txt,**/*.doc,**/*.docx,**/*.gif,**/*.png,**/*.log"/>
+					</f:entry>
+					<f:entry title="Include file type" field="includeFileType">
+						<f:textbox />
+					</f:entry>
+					<f:advanced title="Advanced">
+						<f:entry title="Ant Script" field="ant">
+	    					<f:textarea  default="${descriptor.getAntValue()}" />
+	 					</f:entry>   
+					</f:advanced>
+				</f:nested>
+			</f:radioBlock>	
+		</table>
+		
+		<table>
+		<f:radioBlock name="fileTypeSelected" value = "BINARY" checked="${instance.isFileTypeSelected('BINARY')}" title="Binary" inline="true" help="/plugin/WhiteHat_Sentinel_Jenkins_Plugin/fileBinary.html">
+				<f:nested>
+					<f:entry title="Binary file name" field="binaryName">
+						<f:textbox />
+					</f:entry>
+				</f:nested>
+			</f:radioBlock>	
+		</table>
+	</f:block>
+
+	</f:section>
+
+
+
+	<f:section title="Select Build Destination"> 
+	<f:block>
+		<table>
+			<f:radioBlock name="archiveMethodSelected" value="JENKINS" checked="${instance.isArchiveMethodSelected('JENKINS')}" title="Jenkins server" inline="true" help="/plugin/WhiteHat_Sentinel_Jenkins_Plugin/jenkinsUpload.html">
+				<f:nested>
+		  			<f:entry title="Jenkins host"  field="jenkinsHosts" help="/plugin/WhiteHat_Sentinel_Jenkins_Plugin/jenkinsHost.html">
+		    			<f:textbox default = "${descriptor.getJenkinsHost()}" />
+		    		</f:entry>
+		  		</f:nested>
+			</f:radioBlock>
+		</table>
+		
+		<table>
+			<f:radioBlock name="archiveMethodSelected" value="SFTP" checked="${instance.isArchiveMethodSelected('SFTP')}" title="SFTP server" inline="true"
+		  		help="/plugin/WhiteHat_Sentinel_Jenkins_Plugin/ftp.html">
+		  		<f:nested>
+		  			<f:entry title="SFTP server URL" field="sFtpURL">
+		    			<f:textbox/>
+		    		</f:entry>
+		    		<f:entry title="SFTP username" field="sFtpUID" >
+		    			<f:textbox/>
+		    		</f:entry>
+		    		<f:entry title="SFTP password" field="sFtpPass">
+		    			<f:password/>
+		    		</f:entry>
+		    		<f:entry title="SFTP folder path" field="sFtpFolderPath">
+		    			<f:textbox/>
+		    		</f:entry>
+		    		<f:entry title="Delete archive after upload" field="delArcUploadSFTP">
+						<f:checkbox/>
+					</f:entry>
+		    	</f:nested>
+			</f:radioBlock>	
+		</table>
+		
+		<table>
+			<f:radioBlock name="archiveMethodSelected" value="APPLIANCE" checked="${instance.isArchiveMethodSelected('APPLIANCE')}" title="WhiteHat appliance" inline="true" help="/plugin/WhiteHat_Sentinel_Jenkins_Plugin/applianceUpload.html">
+				<f:nested>
+		  			<f:entry title="Appliance IP address"  field="applianceIP">
+		    			<f:textbox />
+		    		</f:entry>
+		    		<f:entry title="Delete archive after upload" field="delArcUploadAppliance">
+						<f:checkbox/>
+					</f:entry>
+		  		</f:nested>
+			</f:radioBlock>
+		</table>
+	</f:block>
+	</f:section>
+	
+	
+	<f:section title="Advanced">
+	
+	<f:entry title="Maximum upload size (in MB)" field="uploadFileSize">
+		<f:textbox default="1024" />
+	</f:entry>
+	</f:section>
+  
+	
+</f:optionalBlock>    
+<f:optionalBlock title="Trigger scan now" name ="triggerScan"
+		field="triggerScan" inline="true"
+		checked="${instance==null?false:instance.triggerScan}"
+		help="/plugin/WhiteHat_Sentinel_Jenkins_Plugin/triggerScan.html">  
+	<f:block>
+		<table style= "margin-left:10px;">
+			<f:entry>
+				<f:optionalBlock title="After the scan completes, fail to build if vulnerabilities exceed…" name ="vulnerableFailBuildSelected" inline="true" 
+				checked="${instance==null?false:instance.vulnerableFailBuildSelected}"
+				help="/plugin/WhiteHat_Sentinel_Jenkins_Plugin/failBuildVulnerable.html">
+					<f:entry  help="/plugin/WhiteHat_Sentinel_Jenkins_Plugin/openVulnerability.html">
+						<table width="96%">
+							<col width="18%"/>
+							<col width="10%"/>
+							<col width="10%"/>
+							<col width="10%"/>
+							<col width="10%"/>
+							<col width="10%"/>
+							<col width="10%"/>
+							<col width="18%"/>
+						 	 <thead>
+					         	<tr>
+					                <td width="18%"></td>
+					                <td width="10%">${%Critical}</td>					               
+					                <td width="10%">${%High}</td>
+					                <td width="10%">${%Medium}</td>
+					                <td width="10%">${%Low}</td>
+					                 <td width="10%">${%Note}</td>
+					                 <td width="10%">${%Total}</td>
+					                 <td width="18%"></td>
+					            </tr>
+							 </thead>
+						     <tbody>
+						     
+							 	<tr>
+					                <td align="left">Open</td>
+					                <td><f:textbox field="openVulnerabilityCritical" maxlength="4" onblur="validateTextboxValue(this)"/></td>
+					                <td><f:textbox field="openVulnerabilityHigh" maxlength="4" onblur="validateTextboxValue(this)"/></td>
+					                <td><f:textbox field="openVulnerabilityMedium" maxlength="4"  onblur="validateTextboxValue(this)"/></td>
+					                <td><f:textbox field="openVulnerabilityLow"  maxlength="4" onblur="validateTextboxValue(this)"/></td>
+					                <td><f:textbox field="openVulnerabilityNote" maxlength="4" onblur="validateTextboxValue(this)"/></td>
+					                <td><f:textbox field="openVulnerabilityTotal" maxlength="4" onblur="validateTextboxValue(this)"/></td>
+					             </tr>      
+					          </tbody>
+					   	 </table>
+					</f:entry>
+					<f:entry help="/plugin/WhiteHat_Sentinel_Jenkins_Plugin/newVulnerability.html">
+						<table width="96%">
+							<col width="18%"/>
+							<col width="10%"/>
+							<col width="10%"/>
+							<col width="10%"/>
+							<col width="10%"/>
+							<col width="10%"/>
+							<col width="10%"/>
+							<col width="18%"/>
+						     <tbody>
+						     <thead>
+					         	<tr>
+					                <td width="18%"></td>
+					                <td width="10%"></td>					               
+					                <td width="10%"></td>
+					                <td width="10%"></td>
+					                <td width="10%"></td>
+					                <td width="10%"></td>
+					                <td width="10%"></td>
+					                <td width="18%"></td>
+					            </tr>
+							 </thead>
+							 	<tr>
+					                <td align="left">Pending Verification (Standard Edition Only)</td>
+					                <td><f:textbox field="newVulnerabilityCritical" maxlength="4"  onblur="validateTextboxValue(this)"/></td>
+					                <td><f:textbox field="newVulnerabilityHigh" maxlength="4" onblur="validateTextboxValue(this)"/></td>
+					                <td><f:textbox field="newVulnerabilityMedium" maxlength="4" onblur="validateTextboxValue(this)"/></td>
+					                <td><f:textbox field="newVulnerabilityLow" maxlength="4" onblur="validateTextboxValue(this)"/></td>
+					                <td><f:textbox field="newVulnerabilityNote"  maxlength="4" onblur="validateTextboxValue(this)"/></td>
+					                <td><f:textbox field="newVulnerabilityTotal" maxlength="4"  onblur="validateTextboxValue(this)"/></td>         
+					             </tr>      
+					        </tbody>
+					    </table>
+					</f:entry>
+					<f:entry help="/plugin/WhiteHat_Sentinel_Jenkins_Plugin/allVulnerability.html">
+						<table width="96%">
+							<col width="18%"/>
+							<col width="10%"/>
+							<col width="10%"/>
+							<col width="10%"/>
+							<col width="10%"/>
+							<col width="10%"/>
+							<col width="10%"/>
+							<col width="18%"/>
+						    <tbody>
+						    <thead>
+					         	<tr>
+					                <td width="18%"></td>
+					                <td width="10%"></td>					               
+					                <td width="10%"></td>
+					                <td width="10%"></td>
+					                <td width="10%"></td>
+					                <td width="10%"></td>
+					                <td width="10%"></td>
+					                <td width="18%"></td>
+					            </tr>
+							 </thead>  
+							 	<tr>
+					                <td align="left">All (Open and Pending Verification)</td>
+					                <td><f:textbox field="allVulnerabilityCritical" maxlength="4" onblur="validateTextboxValue(this)"/></td>
+					                <td><f:textbox field="allVulnerabilityHigh" maxlength="4" onblur="validateTextboxValue(this)"/></td>
+					                <td><f:textbox field="allVulnerabilityMedium" maxlength="4"  onblur="validateTextboxValue(this)"/></td>
+					                <td><f:textbox field="allVulnerabilityLow" maxlength="4" onblur="validateTextboxValue(this)"/></td>
+					                <td><f:textbox field="allVulnerabilityNote" maxlength="4" onblur="validateTextboxValue(this)"/></td>
+					                <td><f:textbox field="allVulnerabilityTotal"  maxlength="4" onblur="validateTextboxValue(this)"/></td>
+					             </tr>      
+					        </tbody>
+					    </table>
+					</f:entry>
+					<f:validateButton title="${%Get existing values from Sentinel}" progress="${%Loading...}"
+    					method="getVulnStats" with="apiKey,sentinelURL,uselocalCredentials,app"  />
+    					<f:entry>
+							<table>
+								<tr>
+						  			<label name="errorMessage" id= "errorMessage" style ="color:red; font-weight: bold ; display: block"></label>
+						     	</tr>
+    						</table>	
+    					</f:entry>		
+			    	<f:optionalBlock name="scanningTimeOutSelected" field="scanningTimeOutSelected"
+					title="Scan timeout" inline="true"
+					checked="${instance==null?true:instance.scanningTimeOutSelected}"
+					help="/plugin/WhiteHat_Sentinel_Jenkins_Plugin/scanTimeout.html">
+						<f:entry>
+							<table>
+								<tr>
+									 <td>Timeout</td>  
+									<td><f:textbox field="scanWaitTimeMinutes" default="1440" maxlength="4" onblur="validateScanTimeout(this)" /></td>
+									<td> Minutes</td>
+								</tr>
+							</table>  		
+						</f:entry>			
+					</f:optionalBlock>
+				</f:optionalBlock>
+			</f:entry>
+		 </table>  
+	</f:block>
+</f:optionalBlock>
+
+</j:jelly>
+		
