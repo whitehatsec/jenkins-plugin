@@ -10,7 +10,7 @@
     	<maven.javadoc.skip>true</maven.javadoc.skip>
 	</properties>
  
-	<groupId>hudson.plugins</groupId>
+	<groupId>com.whitehat.sentinel.plugin.jenkins</groupId>
 	<artifactId>WhiteHat_Sentinel_Jenkins_Plugin</artifactId>
 	<packaging>hpi</packaging>
 	<name>WhiteHat_Sentinel_Jenkins_Plugin</name>
